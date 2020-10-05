@@ -4,8 +4,8 @@ const port = 6000
 const bodyParser = require('body-parser'); //bodyParser 을 이용하기위해 가져오자.
 const cookieParser = require('cookie-parser');
 const { User } = require("./models/User"); //post를 이용한 데이터데이스를 가져올 떄 아까 만들어 놓은 스키마를 이용할 필요가 있다.
-const config = require("./config/key");
-
+const config = require("../config/key");
+const { auth } = require('./middleware/auth');
 
 //body-parser에 옵션 주기
 // 1. application/x-www-form-urlencoded 형태의 데이터 를 가져와서 분석할 수 있게끔
@@ -43,7 +43,7 @@ app.post('/register', (req,res) => {
 
 app.get('/', (req,res) => res.send('Hello. nodeJS'));
 
-app.post('/login', (req, res) => {
+app.post('/api/users/login', (req, res) => {
 
   // console.log('ping')
   //요청된 이메일을 데이터베이스에서 있는지 찾는다.
@@ -81,6 +81,34 @@ app.post('/login', (req, res) => {
   })
 })
 
+
+app.get('/api/users/auth', auth, (req,res) => {
+  
+  //여기까지 미들웨어를 통과해서 왔다는 얘기는 Authentication 이 True 라는 말
+  res.status(200).json({
+    _id: req.user._id,
+    isAdmin: req.user.role === 0? false : true,
+    isAuth: true,
+    email: req.user.email,
+    name: req.user.name,
+    lastname: req.user.lastname,
+    role: req.user.role,
+    image: req.user.image
+  })
+})
+
+
+app.get('/api/users/logout', auth, (req, res) => {
+
+  User.findOneAndUpdate({_id: req.user._id},
+    { token: ""},
+    (err, user) => {
+      if (err) return res.json({ success: false, err});
+      return res.status(200).send({
+        success: true
+      })
+    })
+})
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
